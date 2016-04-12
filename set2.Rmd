@@ -1,0 +1,70 @@
+---
+title: "Assignment 2"
+author: "igal tsirulnik, Yoni Elhanati"
+date: "April 11, 2016"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggmap)
+library(RCurl)
+library(jsonlite)
+
+
+```
+
+## Description of the dataset-
+Sales in Bloomfield Township, Michigan
+fields:
+X| Y|	RECORDDT|	SALEAMNT|	CNTASSDVAL|	SALESRATIO|	RESSTRTYPE|	RESYRBLT|	RESFLRAREA|	NGHBRHDCD|	LASTUPDATE
+
+
+## Here you can see a small taste of the dataset-
+```{r 1 name}
+url <- 'https://services.arcgis.com/EZzgO87vB4k7XLB1/arcgis/rest/services/BloomfieldSales/FeatureServer/0/query?where=1%3D1&outFields=RECORDDT,SALEAMNT,RESYRBLT&outSR=4326&f=json'
+web <- getURL(url)
+raw <-fromJSON(web)
+tmp <- lapply( raw, function(u) 
+  lapply(u, function(x) if(is.null(x)) NA else x)
+)
+tmp <- lapply( tmp, as.data.frame )
+head(tmp$features,5)
+
+```
+
+## Dataset on a map-
+```{r 2 name}
+# getting the map
+map <- get_map(location = c(lon = mean(tmp$features$geometry.x), lat = mean(tmp$features$geometry.y)), zoom = 12,maptype = "terrain", scale = 2)
+# plotting the map with some points on it
+ggmap(map) +
+  geom_point(data = tmp$features, aes(x = tmp$features$geometry.x, y = tmp$features$geometry.y , alpha = 0), size = 3, shape = 21) +  guides(fill=TRUE, alpha=FALSE, size=FALSE)
+
+```
+
+## Price destrebition by longtitude and altitude
+```{r 3 name}
+qplot(tmp$features$geometry.y, tmp$features$geometry.x, data=tmp$features,col= tmp$features$attributes.RECORDDT)
+#it is clear  that as you get far from the center of the city prices of property goes down
+```
+
+## Analysis of the times buildngs were built in bloomfield
+```{r 4 name}
+barplot(table(tmp$features$attributes.RESYRBLT))
+#we can see that the bigest part of the city was build around the 1950-1970 and since then development of the city slowed down
+
+```
+
+## Analysis of property prices compared to when they were built
+```{r 5 name}
+with(tmp$features,plot(tmp$features$attributes.RESYRBLT,tmp$features$attributes.SALEAMNT, xlim=c(1950,2008)))
+#we can see that development has slowed down but the prices keep growing steadly
+
+```
+
+
+##Summury
+the most relevant pieace of information, is location vs prices map, I would recomend to develop some script that can get input of price ranges and x,y (location) the output would be recomended places to look for property
+
